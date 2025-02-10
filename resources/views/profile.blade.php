@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Profil')
+
 @section('content')
     <div class="p-4 bg-white rounded-lg">
         <!-- Background Image -->

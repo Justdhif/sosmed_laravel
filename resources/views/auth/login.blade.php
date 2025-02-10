@@ -11,7 +11,7 @@
     <!-- Container for Login Form -->
     <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <h2 class="text-3xl font-bold text-center text-indigo-600 mb-6">Log in</h2>
-        <form action="{{ route('login.submit') }}" method="POST" class="space-y-6">
+        <form action="{{ route('login.submit') }}" method="POST" class="space-y-6 mb-4">
             @csrf
 
             <!-- Email -->
@@ -37,6 +37,17 @@
                 Log in
             </button>
         </form>
+
+        <p class="mb-4 text-center font-bold">
+            atau
+        </p>
+
+        <div class="w-full text-black py-2 rounded-lg text-center shadow-md shadow-slate-200">
+            <a href="{{ route('google.login') }}" class="font-bold flex justify-center items-center gap-3">
+                <img src="{{ asset('images/google.png') }}" alt="" class="w-5 h-5">
+                Login dengan Google
+            </a>
+        </div>
 
         <p class="text-center text-gray-500 text-sm mt-6">
             Forgot your password? <a href="" class="text-indigo-600 hover:underline">Reset here</a>.

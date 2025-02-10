@@ -19,21 +19,20 @@ class YoutubeController extends Controller
         $this->client = new Client();
     }
 
-    // Method untuk menampilkan halaman home dengan video default atau hasil pencarian
+    /**
+     * Menampilkan halaman home dengan video default atau hasil pencarian.
+     */
     public function index(Request $request)
     {
         $query = $request->input('query');
 
         // Jika ada query pencarian, tampilkan hasil pencarian
-        if ($query) {
-            return $this->search($query);
-        }
-
-        // Jika tidak ada query, tampilkan video default (misalnya, video terbaru dari channel tertentu)
-        return $this->showDefaultVideos();
+        return $query ? $this->search($query) : $this->showDefaultVideos();
     }
 
-    // Method untuk menampilkan video default
+    /**
+     * Menampilkan video default.
+     */
     private function showDefaultVideos()
     {
         try {
@@ -55,7 +54,7 @@ class YoutubeController extends Controller
             // Format data video
             $videos = array_map(function ($item) {
                 return [
-                    'id' => $item['id'],
+                    'id' => $item['id']['videoId'],
                     'snippet' => $item['snippet'],
                 ];
             }, $data['items']);
@@ -67,7 +66,9 @@ class YoutubeController extends Controller
         }
     }
 
-    // Method untuk menangani pencarian video
+    /**
+     * Menangani pencarian video.
+     */
     private function search($query)
     {
         try {
@@ -87,7 +88,7 @@ class YoutubeController extends Controller
             // Format data video
             $videos = array_map(function ($item) {
                 return [
-                    'id' => $item['id'],
+                    'id' => $item['id']['videoId'],
                     'snippet' => $item['snippet'],
                 ];
             }, $data['items']);
@@ -99,6 +100,9 @@ class YoutubeController extends Controller
         }
     }
 
+    /**
+     * Menampilkan detail video.
+     */
     public function showVideoDetail($videoId)
     {
         try {
@@ -122,12 +126,15 @@ class YoutubeController extends Controller
             $video = $data['items'][0];
 
             // Kirim data ke view
-            return view('youtube.detail', ['video' => $video], ['playlists' => $playlists]);
+            return view('youtube.detail', compact('video', 'playlists'));
         } catch (\Exception $e) {
             return redirect()->route('youtube.index')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Menambahkan video ke dalam playlist.
+     */
     public function addToPlaylist(Request $request)
     {
         $request->validate([

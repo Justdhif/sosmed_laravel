@@ -12,6 +12,7 @@ use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\FollowController;
 use App\Http\Controllers\Auth\ProfileController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 
 // Commerce Routes
 use App\Http\Controllers\Commerce\WishlistController;
@@ -32,6 +33,9 @@ use App\Http\Controllers\Notification\NotificationController;
 // Authentication Routes
 Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+
+Route::get('/auth/google', [GoogleAuthController::class, 'redirectToGoogle'])->name('google.login');
+Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 Route::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register/submit', [AuthController::class, 'register'])->name('register.submit');
 
@@ -87,11 +91,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [ProductController::class, 'index'])->name('products.index');
         Route::get('/create', [ProductController::class, 'create'])->name('products.create');
         Route::post('/', [ProductController::class, 'store'])->name('products.store');
+        Route::get('/search', [ProductController::class, 'search'])->name('products.search');
         Route::get('/{product}', [ProductController::class, 'show'])->name('products.show');
         Route::get('/{product}/edit', [ProductController::class, 'edit'])->name('products.edit');
         Route::put('/{product}', [ProductController::class, 'update'])->name('products.update');
         Route::delete('/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
-        Route::get('/search', [ProductController::class, 'search'])->name('products.search');
     });
 
     // Rating Routes

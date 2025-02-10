@@ -70,14 +70,6 @@
             <i class="fa-solid fa-cart-shopping text-2xl"></i>
             <span class="font-bold text-lg">Cart</span>
         </a>
-        {{-- @if (Auth::user()->shopProfile)
-            <a href="{{ route('shop.profile.index', ['name' => auth()->user()->name]) }}"
-                class="flex items-center gap-6 py-3 px-4 rounded-md transition-all duration-500 ease-out hover:bg-slate-500 hover:bg-opacity-20 @if (Route::is('shop.profile.index')) bg-slate-500 bg-opacity-20 @endif">
-                <img src="{{ asset('storage/' . Auth::user()->shopProfile->image_path) }}"
-                    class="w-6 h-6 rounded-full object-cover">
-                <span class="font-bold text-lg">Profile</span>
-            </a>
-        @endif --}}
 
         {{-- More --}}
         <div class="border-b px-6 py-3 border-gray-300 text-gray-500 font-bold text-lg mb-3">

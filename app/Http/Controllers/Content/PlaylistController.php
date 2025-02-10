@@ -56,41 +56,40 @@ class PlaylistController extends Controller
         return view('playlists.show', compact('playlist'));
     }
 
+    /**
+     * Menampilkan form untuk mengedit playlist.
+     */
     public function edit(Playlist $playlist)
     {
-        if (Auth::id() !== $playlist->user_id) {
-            return redirect()->route('playlists.index')->with('error', 'Anda tidak memiliki izin untuk mengedit playlist ini.');
-        }
+        $this->authorizeUser($playlist);
 
         return view('playlists.edit', compact('playlist'));
     }
 
+    /**
+     * Memperbarui data playlist.
+     */
     public function update(Request $request, Playlist $playlist)
     {
-        if (Auth::id() !== $playlist->user_id) {
-            return redirect()->route('playlists.index')->with('error', 'Anda tidak memiliki izin untuk mengedit playlist ini.');
-        }
+        $this->authorizeUser($playlist);
 
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            // 'thumbnail' => 'nullable|string|url',
         ]);
 
         // Update data
-        $playlist->name = $request->name;
-        $playlist->description = $request->description;
-        // $playlist->thumbnail = $request->thumbnail;
-        $playlist->save();
+        $playlist->update($request->only(['name', 'description']));
 
         return redirect()->route('playlist.show', $playlist->id)->with('success', 'Playlist berhasil diperbarui.');
     }
 
+    /**
+     * Menghapus playlist.
+     */
     public function destroy(Playlist $playlist)
     {
-        if (Auth::id() !== $playlist->user_id) {
-            return redirect()->route('playlists.index')->with('error', 'Anda tidak memiliki izin untuk menghapus playlist ini.');
-        }
+        $this->authorizeUser($playlist);
 
         $playlist->delete();
 
@@ -123,25 +122,30 @@ class PlaylistController extends Controller
         return redirect()->route('playlist.show', $id)->with('success', 'Video berhasil ditambahkan.');
     }
 
+    /**
+     * Menghapus semua video dari playlist.
+     */
     public function removeAllVideos(Playlist $playlist)
     {
-        // Pastikan hanya pemilik playlist yang bisa menghapus
-        if (auth()->id() !== $playlist->user_id) {
-            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke playlist ini.');
-        }
+        $this->authorizeUser($playlist);
 
-        $playlist->videos()->detach(); // Hapus semua relasi video dari playlist
+        $playlist->items()->delete(); // Hapus semua relasi video dari playlist
 
         return redirect()->back()->with('success', 'Semua video berhasil dihapus dari playlist.');
     }
 
+    /**
+     * Menghapus video yang dipilih dari playlist.
+     */
     public function removeSelectedVideos(Request $request, Playlist $playlist)
     {
         $request->validate([
             'videos' => 'required|array',
         ]);
 
-        $playlist->videos()->whereIn('id', $request->videos)->delete();
+        $this->authorizeUser($playlist);
+
+        $playlist->items()->whereIn('id', $request->videos)->delete();
 
         return redirect()->back()->with('success', 'Video yang dipilih telah dihapus.');
     }
@@ -149,10 +153,19 @@ class PlaylistController extends Controller
     /**
      * Fungsi untuk mendapatkan thumbnail dari video YouTube.
      */
-    private function getYouTubeThumbnail($url)
+    protected function getYouTubeThumbnail($url)
     {
         preg_match('/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/v\/|.*embed\/|.*watch\?v=))([^&?]+)/', $url, $matches);
         return isset($matches[1]) ? "https://img.youtube.com/vi/{$matches[1]}/hqdefault.jpg" : null;
     }
-}
 
+    /**
+     * Memeriksa apakah pengguna memiliki izin untuk mengedit atau menghapus playlist.
+     */
+    protected function authorizeUser(Playlist $playlist)
+    {
+        if (Auth::id() !== $playlist->user_id) {
+            return redirect()->route('playlists.index')->with('error', 'Anda tidak memiliki izin untuk mengakses playlist ini.');
+        }
+    }
+}

@@ -15,13 +15,16 @@ use Illuminate\Support\Facades\Storage;
 class PostController extends Controller
 {
     /**
-     * Menyimpan postingan baru
+     * Menampilkan form untuk membuat postingan baru.
      */
     public function create()
     {
         return view('posts.create');
     }
 
+    /**
+     * Menampilkan detail postingan beserta komentar dan postingan lain.
+     */
     public function show($id)
     {
         $post = Post::with(['user', 'likes', 'comments.user', 'media'])->findOrFail($id);
@@ -31,6 +34,9 @@ class PostController extends Controller
         return view('posts.show', compact('post', 'otherPosts', 'comments'));
     }
 
+    /**
+     * Menyimpan postingan baru ke database.
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -46,7 +52,7 @@ class PostController extends Controller
             'user_id' => Auth::id(),
         ]);
 
-        // Jika ada file gambar
+        // Simpan media jika ada
         if ($request->hasFile('media')) {
             foreach ($request->file('media') as $file) {
                 $path = $file->store('uploads', 'public');
@@ -61,20 +67,22 @@ class PostController extends Controller
         return redirect()->route('home')->with('success', 'Post berhasil dibuat!');
     }
 
+    /**
+     * Menampilkan form untuk mengedit postingan.
+     */
     public function edit(Post $post)
     {
-        if (Auth::id() !== $post->user_id) {
-            return redirect()->route('posts.index')->with('error', 'Anda tidak memiliki izin untuk mengedit postingan ini.');
-        }
+        $this->authorizeUser($post);
 
         return view('posts.edit', compact('post'));
     }
 
+    /**
+     * Memperbarui postingan yang ada.
+     */
     public function update(Request $request, Post $post)
     {
-        if (Auth::id() !== $post->user_id) {
-            return redirect()->route('posts.index')->with('error', 'Anda tidak memiliki izin untuk mengedit postingan ini.');
-        }
+        $this->authorizeUser($post);
 
         $request->validate([
             'title' => 'required|string|max:255',
@@ -89,8 +97,7 @@ class PostController extends Controller
         // Jika ada gambar baru, simpan dan hapus yang lama
         if ($request->hasFile('image')) {
             Storage::delete('public/' . $post->image_path);
-            $path = $request->file('image')->store('posts', 'public');
-            $post->image_path = $path;
+            $post->image_path = $request->file('image')->store('posts', 'public');
         }
 
         $post->save();
@@ -98,11 +105,12 @@ class PostController extends Controller
         return redirect()->route('posts.show', $post->id)->with('success', 'Postingan berhasil diperbarui.');
     }
 
+    /**
+     * Menghapus postingan.
+     */
     public function destroy(Post $post)
     {
-        if (Auth::id() !== $post->user_id) {
-            return redirect()->route('posts.index')->with('error', 'Anda tidak memiliki izin untuk menghapus postingan ini.');
-        }
+        $this->authorizeUser($post);
 
         Storage::delete('public/' . $post->image_path);
         $post->delete();
@@ -110,12 +118,18 @@ class PostController extends Controller
         return redirect()->route('home')->with('success', 'Postingan berhasil dihapus.');
     }
 
+    /**
+     * Menampilkan postingan secara acak.
+     */
     public function explore()
     {
         $posts = Post::inRandomOrder()->limit(20)->get(); // Ambil 20 postingan secara acak
         return view('posts.explore', compact('posts'));
     }
 
+    /**
+     * Memberi like atau unlike pada postingan.
+     */
     public function likePost($postId)
     {
         $post = Post::findOrFail($postId);
@@ -145,13 +159,16 @@ class PostController extends Controller
         return back();  // Redirect kembali ke halaman yang sama
     }
 
+    /**
+     * Mengomentari postingan.
+     */
     public function commentOnPost(Request $request, $postId)
     {
         $request->validate([
             'comment' => 'required|string',
         ]);
 
-        $post = Post::find($postId);
+        $post = Post::findOrFail($postId);
         $user = auth()->user();
 
         $comment = new Comment();
@@ -169,5 +186,14 @@ class PostController extends Controller
 
         return redirect()->back();  // Redirect kembali ke halaman yang sama
     }
-}
 
+    /**
+     * Memeriksa apakah pengguna memiliki izin untuk mengedit atau menghapus postingan.
+     */
+    protected function authorizeUser(Post $post)
+    {
+        if (Auth::id() !== $post->user_id) {
+            return redirect()->route('posts.index')->with('error', 'Anda tidak memiliki izin untuk mengakses postingan ini.');
+        }
+    }
+}

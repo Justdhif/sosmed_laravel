@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Commerce;
 
 use App\Http\Controllers\Controller;
-
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\Cart;
@@ -15,11 +14,8 @@ class CheckoutController extends Controller
 {
     public function show()
     {
-        $cartItems = Cart::where('user_id', auth()->id())->get();
-        $totalPrice = $cartItems->sum(function ($item) {
-            return $item->product->price * $item->quantity;
-        });
-
+        $cartItems = Cart::where('user_id', auth()->id())->with('product')->get();
+        $totalPrice = $cartItems->sum(fn($item) => $item->product->price * $item->quantity);
         return view('checkout.index', compact('cartItems', 'totalPrice'));
     }
 
@@ -30,31 +26,17 @@ class CheckoutController extends Controller
             return redirect()->route('checkout.show')->with('error', 'Keranjang belanja kosong.');
         }
 
-        $totalPrice = $cartItems->sum(fn ($item) => $item->product->price * $item->quantity);
+        $totalPrice = $cartItems->sum(fn($item) => $item->product->price * $item->quantity);
+        $order = Order::create(['user_id' => auth()->id(), 'total_price' => $totalPrice, 'status' => 'pending']);
 
-        // Simpan Order ke database
-        $order = Order::create([
-            'user_id' => auth()->id(),
-            'total_price' => $totalPrice,
-            'status' => 'pending',
-        ]);
-
-        // Konfigurasi Midtrans
         Config::$serverKey = config('midtrans.server_key');
         Config::$isProduction = config('midtrans.is_production');
         Config::$isSanitized = config('midtrans.is_sanitized');
         Config::$is3ds = config('midtrans.is_3ds');
 
-        // Buat payload untuk Midtrans
         $transactionDetails = [
-            'transaction_details' => [
-                'order_id' => $order->id,
-                'gross_amount' => $totalPrice,
-            ],
-            'customer_details' => [
-                'first_name' => auth()->user()->name,
-                'email' => auth()->user()->email,
-            ],
+            'transaction_details' => ['order_id' => $order->id, 'gross_amount' => $totalPrice],
+            'customer_details' => ['first_name' => auth()->user()->name, 'email' => auth()->user()->email],
         ];
 
         try {
@@ -75,9 +57,7 @@ class CheckoutController extends Controller
     public function callback(Request $request)
     {
         $serverKey = config('midtrans.server_key');
-        $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
-
-        if ($hashed != $request->signature_key) {
+        if (hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey) !== $request->signature_key) {
             return abort(403, 'Unauthorized');
         }
 
@@ -86,22 +66,19 @@ class CheckoutController extends Controller
             return abort(404, 'Order tidak ditemukan');
         }
 
-        if ($request->transaction_status == 'capture' || $request->transaction_status == 'settlement') {
+        if (in_array($request->transaction_status, ['capture', 'settlement'])) {
             $order->update(['status' => 'paid']);
-
-            // Kurangi stok produk setelah pembayaran berhasil
-            foreach ($order->cart as $item) {
-                $product = Product::find($item->product_id);
-                if ($product) {
-                    $product->decrement('stock', $item->quantity);
-                }
-            }
-
+            $this->reduceStock($order);
             return redirect()->route('checkout.success');
-        } elseif ($request->transaction_status == 'pending') {
-            return redirect()->route('checkout.pending');
-        } else {
-            return redirect()->route('checkout.failed');
+        }
+
+        return redirect()->route($request->transaction_status === 'pending' ? 'checkout.pending' : 'checkout.failed');
+    }
+
+    protected function reduceStock($order)
+    {
+        foreach ($order->cart as $item) {
+            Product::find($item->product_id)?->decrement('stock', $item->quantity);
         }
     }
 }

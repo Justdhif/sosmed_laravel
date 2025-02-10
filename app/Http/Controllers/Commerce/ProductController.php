@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Commerce;
 
-use App\Http\Controllers\Controller;
-
+use App\Models\Cart;
 use App\Models\Product;
-use App\Models\ShopProfile;
+use App\Models\Wishlist;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -16,39 +15,32 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::all();
-        return view('shop.products.index', compact('products'));
+        $cartCount = Cart::where('user_id', Auth::id())->count();
+        $wishlistCount = Wishlist::where('user_id', Auth::id())->count();
+        return view('shop.products.index', compact('products', 'cartCount', 'wishlistCount'));
     }
 
-    // Menampilkan daftar produk yang dimiliki oleh profil toko
+    // Menampilkan form untuk menambah produk
     public function create()
     {
-        $shopProfile = Auth::user()->shopProfile;
-        if (!$shopProfile) {
+        if (!$this->hasShopProfile()) {
             return redirect()->route('shop.create')->with('error', 'Anda harus memiliki profil toko untuk menambahkan produk.');
         }
-
         return view('shop.products.create');
     }
 
     public function store(Request $request)
     {
-        $shopProfile = Auth::user()->shopProfile;
-        if (!$shopProfile) {
+        if (!$this->hasShopProfile()) {
             return redirect()->route('shop.create')->with('error', 'Anda harus memiliki profil toko untuk menambahkan produk.');
         }
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+        $request->validate($this->validationRules());
 
         $imagePath = $request->file('image') ? $request->file('image')->store('products', 'public') : null;
 
         Product::create([
-            'shop_profile_id' => $shopProfile->id,
+            'shop_profile_id' => Auth::user()->shopProfile->id,
             'name' => $request->name,
             'description' => $request->description,
             'price' => $request->price,
@@ -56,14 +48,12 @@ class ProductController extends Controller
             'image_path' => $imagePath,
         ]);
 
-        return redirect()->route('profile.show', ['name' => $shopProfile->user->name])->with('success', 'Produk berhasil ditambahkan.');
+        return redirect()->route('profile.show', ['name' => Auth::user()->name])->with('success', 'Produk berhasil ditambahkan.');
     }
 
     public function search(Request $request)
     {
         $query = $request->input('query');
-
-        // Ambil produk yang cocok dengan nama atau deskripsi
         $products = Product::where('name', 'LIKE', "%{$query}%")
             ->orWhere('description', 'LIKE', "%{$query}%")
             ->get();
@@ -88,28 +78,36 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        if (Auth::id() !== $product->shop->user_id) {
+        if (Auth::id() !== $product->shopProfile->user_id) {
             return redirect()->route('products.index')->with('error', 'Anda tidak memiliki izin untuk mengedit produk ini.');
         }
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric',
-            'image' => 'nullable|image|max:2048',
-        ]);
+        $request->validate($this->validationRules(false));
 
-        $product->name = $request->name;
-        $product->description = $request->description;
-        $product->price = $request->price;
+        $product->fill($request->only(['name', 'description', 'price']));
 
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $product->image_path = $path;
+            $product->image_path = $request->file('image')->store('products', 'public');
         }
 
         $product->save();
 
         return redirect()->route('products.show', $product->id)->with('success', 'Produk berhasil diperbarui.');
+    }
+
+    private function hasShopProfile()
+    {
+        return Auth::user()->shopProfile !== null;
+    }
+
+    private function validationRules($isStore = true)
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'stock' => $isStore ? 'required|integer|min:0' : 'nullable|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ];
     }
 }
