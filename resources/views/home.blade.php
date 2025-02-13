@@ -4,163 +4,145 @@
 
 @section('content')
 
-    <div>
-        <!-- Story Section -->
-        <div class="p-5 mb-6">
-            <!-- Story User -->
-            <div class="relative w-16 h-16">
-                <!-- Gambar Profil dengan Border Gradient jika sudah punya Story -->
-                <img src="{{ asset('storage/' . (auth()->user()->profile_picture ?? 'profile_pictures/default.jpg')) }}"
-                    alt="Your Story" class="w-full h-full rounded-full object-cover border-2 border-gray-900">
-
-                <h3 class="text-center font-bold">{{ auth()->user()->name }}</h3>
-            </div>
+    <div class="py-6">
+        <div class="flex items-center justify-center gap-3">
+            <img src="{{ asset('images/icon.webp') }}" alt="" class="w-12 h-12 object-cover">
+            <h2 class="text-3xl font-bold text-center">welcome to JustNews <span
+                    class="text-indigo-600">{{ auth()->user()->name }}</span></h2>
         </div>
 
-        @foreach ($posts as $post)
-            <div class="bg-white flex flex-col rounded-lg px-40 mb-6">
-                <!-- Header Postingan -->
-                <div class="flex justify-between items-center py-4 border-b border-gray-300">
-                    <a href="{{ route('profile.show', ['name' => $post->user->name]) }}" class="flex items-center">
-                        <img src="{{ asset('storage/' . ($post->user->profile_picture ?? 'profile_pictures/default.jpg')) }}"
-                            alt="User Profile" class="w-10 h-10 rounded-full mr-4">
-                        <div>
-                            <p class="font-semibold text-gray-800">{{ $post->user->name }}
-                                {{ $post->user->followers->count() > 0 ? '🌟' : '' }}</p>
-                            <p class="text-sm text-gray-500">{{ $post->created_at->diffForHumans() }}</p>
+        <form action="{{ route('search.images') }}" method="GET" class="w-full mt-8 flex gap-3">
+            <input type="text" name="query" placeholder="Cari Gambar..."
+                class="p-2 border-2 rounded-lg w-full focus:outline-none focus:border-blue-500">
+            <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg">🔍</button>
+        </form>
+
+        <!-- Tab Kategori -->
+        <div class="mt-6 flex gap-4 overflow-x-auto justify-between">
+            <a href="{{ route('home', ['category' => 'all']) }}" class="px-4 py-2 rounded-lg text-white bg-indigo-500">
+                All
+            </a>
+            @foreach ($categories as $category)
+                <a href="{{ route('home', ['category' => $category->id]) }}"
+                    class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-indigo-500 hover:text-white
+                {{ request('category') == $category->id ? 'bg-indigo-500 text-white' : '' }}">
+                    {{ $category->name }}
+                </a>
+            @endforeach
+        </div>
+
+        @foreach ($videos->chunk(2) as $chunk)
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                @foreach ($chunk as $video)
+                    <div class="bg-white rounded-lg px-4 py-6">
+                        <!-- Header -->
+                        <div class="flex justify-between items-center py-4 border-b border-gray-300">
+                            <a href="{{ route('profile.show', ['name' => $video->user->name]) }}" class="flex items-center">
+                                <img src="{{ filter_var($video->user->profile_picture, FILTER_VALIDATE_URL) ? $video->user->profile_picture : asset('storage/' . ($video->user->profile_picture ?? 'profile_pictures/default.jpg')) }}"
+                                    alt="User Profile" class="w-10 h-10 rounded-full mr-4">
+                                <div>
+                                    <p class="font-semibold text-gray-800">{{ $video->user->name }}
+                                        {{ $video->user->followers->count() > 0 ? '🌟' : '' }}</p>
+                                    <p class="text-sm text-gray-500">{{ $video->created_at->diffForHumans() }}</p>
+                                </div>
+                            </a>
                         </div>
-                    </a>
-                    @if (auth()->user()->id !== $post->user->id)
-                        <div class="relative right-0">
-                            @if (auth()->user()->following->contains($post->user->id))
-                                <form action="{{ route('unfollow', $post->user->id) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded">Unfollow</button>
-                                </form>
-                            @else
-                                <form action="{{ route('follow', $post->user->id) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Follow</button>
-                                </form>
+
+                        <!-- Video Konten -->
+                        <div class="w-full h-[24rem] rounded-lg overflow-hidden">
+                            @if ($video->youtube_video_id)
+                                @php
+                                    preg_match(
+                                        '/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/',
+                                        $video->youtube_video_id,
+                                        $matches,
+                                    );
+                                    $videoId = $matches[1] ?? $video->youtube_video_id;
+                                @endphp
+
+                                <iframe width="100%" height="100%"
+                                    src="https://www.youtube.com/embed/{{ $videoId }}" frameborder="0"
+                                    allowfullscreen>
+                                </iframe>
                             @endif
                         </div>
-                    @endif
-                </div>
 
-                <!-- Konten Postingan -->
-                <div>
-                    @if ($post->media->count() > 1)
-                        <!-- Carousel -->
-                        <div class="relative overflow-hidden rounded-lg">
-                            <div class="carousel flex transition-transform duration-500" data-post-id="{{ $post->id }}">
-                                @foreach ($post->media as $media)
-                                    <div class="carousel-item flex-shrink-0 w-full">
-                                        @if ($media->type == 'image')
-                                            <img src="{{ asset('storage/' . $media->path) }}" alt="Post Image"
-                                                class="w-full h-[32rem] object-cover">
-                                        @elseif($media->type == 'video')
-                                            <div class="video-container">
-                                                <iframe width="560" height="315"
-                                                    src="https://www.youtube.com/embed/{{ parse_url($media->path, PHP_URL_QUERY) }}"
-                                                    frameborder="0"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                    allowfullscreen></iframe>
-                                            </div>
+                        <!-- Aksi Video -->
+                        <div class="py-4">
+                            <div class="flex items-center gap-6">
+                                <form action="{{ route('posts.like', $video->id) }}" method="post"
+                                    class="flex items-start gap-2">
+                                    @csrf
+                                    <button type="submit" class="text-gray-600 text-2xl hover:text-red-600">
+                                        @if ($video->likes->contains('user_id', auth()->id()))
+                                            <i class="fas fa-heart text-red-600"></i>
+                                        @else
+                                            <i class="fa-regular fa-heart"></i>
                                         @endif
-                                    </div>
-                                @endforeach
+                                    </button>
+                                    <p class="text-lg font-bold text-gray-700">{{ $video->likes->count() }}</p>
+                                </form>
+                                <div class="flex items-start gap-2"
+                                    onclick="window.location.href='{{ route('posts.show', $video->id) }}'">
+                                    <i class="fa-regular fa-comment text-gray-600 text-2xl hover:text-indigo-600"></i>
+                                    <p class="text-lg font-bold text-gray-700">{{ $video->comments->count() }}</p>
+                                </div>
                             </div>
-                            <!-- Prev and Next Buttons -->
-                            <button
-                                class="absolute top-1/2 left-4 transform -translate-y-1/2 bg-blue-500 text-white w-8 h-8 rounded-full opacity-80 carousel-prev hover:opacity-100 transition-all"
-                                data-post-id="{{ $post->id }}">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <button
-                                class="absolute top-1/2 right-4 transform -translate-y-1/2 bg-blue-500 text-white w-8 h-8 rounded-full opacity-80 carousel-next hover:opacity-100 transition-all"
-                                data-post-id="{{ $post->id }}">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
-                    @elseif($post->media->count() == 1)
-                        <!-- Single Media -->
-                        @if ($post->media[0]->type == 'image')
-                            <img src="{{ asset('storage/' . $post->media[0]->path) }}" alt="Post Image"
-                                class="w-full h-[32rem] object-cover rounded-lg">
-                        @elseif($post->media[0]->type == 'video')
-                            <video controls class="w-full h-[32rem] object-cover">
-                                <source src="{{ asset('storage/' . $post->media[0]->path) }}" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                        @endif
-                    @endif
-                </div>
 
-                <!-- Aksi Postingan -->
-                <div class="py-4">
-                    <div class="flex items-center gap-6">
-                        <form action="{{ route('posts.like', $post->id) }}" method="POST" class="flex items-start gap-2">
-                            @csrf
-                            <button type="submit" class="text-gray-600 text-2xl hover:text-red-600">
-                                @if ($post->likes->contains('user_id', auth()->id()))
-                                    <i class="fas fa-heart text-red-600"></i>
-                                @else
-                                    <i class="fa-regular fa-heart"></i>
-                                @endif
-                            </button>
-                            <p class="text-lg font-bold text-gray-700">{{ $post->likes->count() }}</p>
-                        </form>
-                        <div class="flex items-start gap-2"
-                            onclick="window.location.href='{{ route('posts.show', $post->id) }}'">
-                            <i class="fa-regular fa-comment text-gray-600 text-2xl hover:text-indigo-600"></i>
-                            <p class="text-lg font-bold text-gray-700">{{ $post->comments->count() }}</p>
+                            <div class="py-4">
+                                <p class="text-lg"><span class="font-bold">{{ $video->user->name }}</span>
+                                    {{ $video->description }}
+                                </p>
+                            </div>
+
+                            <a href="{{ route('posts.show', $video->id) }}"
+                                class="font-semibold text-blue-500 hover:underline transition-all">
+                                See {{ $video->comments->count() }} comment(s)
+                            </a>
                         </div>
                     </div>
-
-                    <div class="py-4">
-                        <p class="text-lg"><span class="font-bold">{{ $post->user->name }}</span> {{ $post->description }}
-                        </p>
-                    </div>
-
-                    <a href="{{ route('posts.show', $post->id) }}"
-                        class="font-semibold text-blue-500 hover:underline transition-all">See
-                        {{ $post->comments->count() }}
-                        comment(s)</a>
-
-                    <form action="{{ route('posts.comment', $post->id) }}" method="POST" class="flex gap-2 h-12 mt-4">
-                        @csrf
-                        <textarea name="comment" rows="4"
-                            class="w-full p-3 resize-none border border-gray-300 rounded-md focus:border-2 focus:border-indigo-700 focus:outline-none"
-                            placeholder="Write a comment" required></textarea>
-                        <button type="submit"
-                            class="bg-indigo-600 text-white p-3 rounded-md hover:bg-indigo-700">Send</button>
-                    </form>
-                </div>
+                @endforeach
             </div>
+
+            <style>
+                .border-gradient {
+                    border: 4px solid transparent;
+                    border-radius: 100%;
+                    /* Sesuaikan dengan rounded-lg */
+                    background-image: linear-gradient(white, white), linear-gradient(to right, #ff7e5f, #feb47b);
+                    background-clip: padding-box, border-box;
+                    background-origin: border-box;
+                }
+            </style>
+
+            <!-- Setiap 2 row video, tambahkan 1 row gambar -->
+            @if ($loop->iteration % 2 == 0)
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                    @foreach ($images->slice(($loop->iteration / 2 - 1) * 4, 4) as $image)
+                        <div class="bg-white shadow-lg rounded-lg p-4">
+                            <a href="{{ route('posts.show', $image->id) }}">
+                                <img src="{{ asset('storage/' . $image->image_path) }}"
+                                    class="w-72 h-72 object-cover mt-2 rounded-lg">
+                            </a>
+                            <div class="flex items-center mt-4">
+                                <img src="{{ filter_var($video->user->profile_picture, FILTER_VALIDATE_URL) ? $video->user->profile_picture : asset('storage/' . ($video->user->profile_picture ?? 'profile_pictures/default.jpg')) }}"
+                                    class="w-10 h-10 rounded-full mr-2">
+                                <div class="flex items-center">
+                                    <p class="font-semibold text-gray-800">{{ $image->user->name }}</p>
+                                    <p class="text-sm text-gray-500 ml-2">{{ $image->created_at->diffForHumans() }}</p>
+                                </div>
+                            </div>
+                            <h3 class="text-sm font-semibold mt-2">{{ $image->title }}</h3>
+                            <p class="text-sm text-gray-500 mt-2">{{ $image->description }}</p>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         @endforeach
     </div>
 
-    <script>
-        document.querySelectorAll('.carousel').forEach(carousel => {
-            let currentIndex = 0;
-            const items = carousel.querySelectorAll('.carousel-item');
-            const totalItems = items.length;
-            const postId = carousel.dataset.postId;
-
-            const updateCarousel = () => {
-                const offset = -currentIndex * 100;
-                carousel.style.transform = `translateX(${offset}%)`;
-            };
-
-            document.querySelector(`.carousel-prev[data-post-id="${postId}"]`).addEventListener('click', () => {
-                currentIndex = (currentIndex === 0) ? totalItems - 1 : currentIndex - 1;
-                updateCarousel();
-            });
-
-            document.querySelector(`.carousel-next[data-post-id="${postId}"]`).addEventListener('click', () => {
-                currentIndex = (currentIndex + 1) % totalItems;
-                updateCarousel();
-            });
-        });
-    </script>
+    {{-- Pagination untuk post image --}}
+    <div class="mt-6">
+        {{ $images->links() }}
+    </div>
 @endsection

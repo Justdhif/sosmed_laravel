@@ -6,7 +6,7 @@
     <div class="p-4 bg-white rounded-lg">
         <!-- Background Image -->
         <div class="relative mb-5 rounded-lg overflow-hidden">
-            <img src="{{ asset('storage/' . ($user->background_image ?? 'profile_backgrounds/default.jpg')) }}"
+            <img src="{{ asset('storage/' . ($user->background_image ?? 'profile_backgrounds/default-bg.jpg')) }}"
                 class="w-full h-64 object-cover">
             <div class="absolute inset-0 bg-black bg-opacity-30"></div>
         </div>

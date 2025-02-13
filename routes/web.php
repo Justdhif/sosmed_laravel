@@ -10,22 +10,23 @@ use App\Http\Controllers\User\UserController;
 
 // Auth Routes
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\FollowController;
 use App\Http\Controllers\Auth\ProfileController;
-use App\Http\Controllers\Auth\GoogleAuthController;
 
 // Commerce Routes
-use App\Http\Controllers\Commerce\WishlistController;
 use App\Http\Controllers\Commerce\CartController;
-use App\Http\Controllers\Commerce\CheckoutController;
-use App\Http\Controllers\Commerce\ShopProfileController;
-use App\Http\Controllers\Commerce\ProductController;
 use App\Http\Controllers\Commerce\RatingController;
+use App\Http\Controllers\Commerce\ProductController;
+use App\Http\Controllers\Commerce\CheckoutController;
+use App\Http\Controllers\Commerce\WishlistController;
+use App\Http\Controllers\Commerce\ShopProfileController;
 
 // Content Routes
-use App\Http\Controllers\Content\PlaylistController;
 use App\Http\Controllers\Content\PostController;
+use App\Http\Controllers\Content\PlaylistController;
 use App\Http\Controllers\Content\YoutubeController;
+use App\Http\Controllers\Content\YouTubeMusicController;
 
 // Notification Routes
 use App\Http\Controllers\Notification\NotificationController;
@@ -48,14 +49,19 @@ Route::middleware(['auth'])->group(function () {
     // Post Routes
     Route::prefix('posts')->group(function () {
         Route::get('/', [PostController::class, 'create'])->name('posts.create');
-        Route::post('/', [PostController::class, 'store'])->name('posts.store');
+        Route::post('/storeImage', [PostController::class, 'storeImage'])->name('posts.storeImage');
+        Route::post('/storeVideo', [PostController::class, 'storeVideo'])->name('posts.storeVideo');
+        Route::get('/explore', [PostController::class, 'explore'])->name('posts.explore');
         Route::get('/{id}', [PostController::class, 'show'])->name('posts.show');
         Route::get('/{post}/edit', [PostController::class, 'edit'])->name('posts.edit');
         Route::put('/{post}', [PostController::class, 'update'])->name('posts.update');
         Route::delete('/{post}', [PostController::class, 'destroy'])->name('posts.destroy');
-        Route::get('/explore', [PostController::class, 'explore'])->name('posts.explore');
         Route::post('/{post}/like', [PostController::class, 'likePost'])->name('posts.like');
         Route::post('/{post}/comment', [PostController::class, 'commentOnPost'])->name('posts.comment');
+        Route::delete('/{post}/comment', [PostController::class, 'deleteComment'])->name('posts.comments.destroy');
+        Route::post('/comments/reply/{comment}', [PostController::class, 'replyToComment'])->name('posts.reply');
+        Route::get('/search/videos', [PostController::class, 'searchVideos'])->name('search.videos');
+        Route::get('/search/images', [PostController::class, 'searchImages'])->name('search.images');
     });
 
     // User Routes
@@ -123,9 +129,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [CheckoutController::class, 'show'])->name('checkout.show');
         Route::post('/process', [CheckoutController::class, 'process'])->name('checkout.process');
         Route::post('/callback', [CheckoutController::class, 'callback'])->name('checkout.callback');
-        Route::get('/success', function () { return view('checkout.success'); })->name('checkout.success');
-        Route::get('/pending', function () { return view('checkout.pending'); })->name('checkout.pending');
-        Route::get('/failed', function () { return view('checkout.failed'); })->name('checkout.failed');
+        Route::get('/success', function () {
+            return view('checkout.success');
+        })->name('checkout.success');
+        Route::get('/pending', function () {
+            return view('checkout.pending');
+        })->name('checkout.pending');
+        Route::get('/failed', function () {
+            return view('checkout.failed');
+        })->name('checkout.failed');
     });
 
     // Youtube Routes

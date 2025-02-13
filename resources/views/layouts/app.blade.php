@@ -13,7 +13,11 @@
 
     <style>
         ::-webkit-scrollbar {
-            display: none;
+            opacity: 0;
+        }
+
+        :hover::-webkit-scrollbar {
+            opacity: 1;
         }
 
         @keyframes slideIn {
@@ -78,7 +82,7 @@
         @endif
     </div>
 
-    <div class="flex justify-between items-center h-screen gap-3 p-3">
+    <div class="flex justify-between items-center h-screen">
         <!-- Sidebar -->
         @if (!Route::is('posts.show'))
             @include('layouts.sidebar')

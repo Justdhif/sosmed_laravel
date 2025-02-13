@@ -9,7 +9,7 @@ class Post extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'description', 'user_id'];
+    protected $fillable = ['user_id', 'title', 'description', 'image_path', 'youtube_video_id', 'category_id'];
 
     /**
      * Relasi ke User (yang membuat postingan)
@@ -17,6 +17,11 @@ class Post extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function likes()
@@ -27,10 +32,5 @@ class Post extends Model
     public function comments()
     {
         return $this->hasMany(Comment::class);
-    }
-
-    public function media()
-    {
-        return $this->hasMany(Media::class);
     }
 }

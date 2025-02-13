@@ -33,14 +33,15 @@ class GoogleAuthController extends Controller
                     'email' => $googleUser->email,
                     'password' => bcrypt(str()->random(16)), // Set password random (tidak digunakan)
                     'google_id' => $googleUser->id,
+                    'profile_picture' => $googleUser->getAvatar(),
                 ]
             );
 
             Auth::login($user);
 
-            return redirect('/home')->with('success', 'Berhasil login menggunakan Google');
+            return redirect()->route('home')->with('success', 'Berhasil login menggunakan Google');
         } catch (\Exception $e) {
-            return redirect('/login')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->route('login')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 }
