@@ -11,20 +11,31 @@
                     class="text-indigo-600">{{ auth()->user()->name }}</span></h2>
         </div>
 
-        <form action="{{ route('search.images') }}" method="GET" class="w-full mt-8 flex gap-3">
-            <input type="text" name="query" placeholder="Cari Gambar..."
+        <form action="{{ route('home') }}" method="GET" class="w-full mt-8 flex gap-3">
+            <input type="text" name="query" value="{{ request('query') }}" placeholder="Cari Gambar..."
                 class="p-2 border-2 rounded-lg w-full focus:outline-none focus:border-blue-500">
             <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg">🔍</button>
         </form>
 
         <!-- Tab Kategori -->
-        <div class="mt-6 flex gap-4 overflow-x-auto justify-between">
-            <a href="{{ route('home', ['category' => 'all']) }}" class="px-4 py-2 rounded-lg text-white bg-indigo-500">
+        <div class="mt-6 flex overflow-x-auto whitespace-nowrap space-x-3">
+            <a href="{{ route('home', array_merge(request()->query(), ['category' => 'all'])) }}" class="px-4 py-2 rounded-lg bg-gray-200 duration-300 transition-all hover:bg-indigo-500 hover:text-white
+                {{ request('category') == 'all' || !request('category') == 'all' ? 'bg-indigo-500 text-white' : '' }}">
                 All
             </a>
+            <a href="{{ route('home', array_merge(request()->query(), ['category' => 'foto'])) }}"
+                class="px-4 py-2 rounded-lg duration-300 transition-all bg-gray-200 hover:bg-indigo-500 hover:text-white
+                {{ request('category') == 'foto' ? 'bg-indigo-500 text-white' : '' }}">
+                Foto
+            </a>
+            <a href="{{ route('home', array_merge(request()->query(), ['category' => 'video'])) }}"
+                class="px-4 py-2 rounded-lg duration-300 transition-all bg-gray-200 hover:bg-indigo-500 hover:text-white
+                {{ request('category') == 'video' ? 'bg-indigo-500 text-white' : '' }}">
+                Video
+            </a>
             @foreach ($categories as $category)
-                <a href="{{ route('home', ['category' => $category->id]) }}"
-                    class="px-4 py-2 rounded-lg bg-gray-200 hover:bg-indigo-500 hover:text-white
+                <a href="{{ route('home', array_merge(request()->query(), ['category' => $category->id])) }}"
+                    class="px-4 py-2 rounded-lg bg-gray-200 duration-300 transition-all hover:bg-indigo-500 hover:text-white
                 {{ request('category') == $category->id ? 'bg-indigo-500 text-white' : '' }}">
                     {{ $category->name }}
                 </a>
@@ -46,6 +57,23 @@
                                     <p class="text-sm text-gray-500">{{ $video->created_at->diffForHumans() }}</p>
                                 </div>
                             </a>
+                            {{-- Button Follow --}}
+                            @if (auth()->id() !== $video->user_id)
+                                @if (auth()->user()->isFollowing($video->user))
+                                    <form action="{{ route('unfollow', $video->user->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit"
+                                            class="px-4 py-2 bg-red-500 text-white rounded text-sm font-semibold">Unfollow</button>
+                                    </form>
+                                @else
+                                    <form action="{{ route('follow', $video->user->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit"
+                                            class="px-4 py-2 bg-blue-500 text-white rounded text-sm font-semibold">Follow</button>
+                                    </form>
+                                @endif
+                            @endif
                         </div>
 
                         <!-- Video Konten -->
@@ -104,7 +132,7 @@
                 @endforeach
             </div>
 
-            <style>
+            {{-- <style>
                 .border-gradient {
                     border: 4px solid transparent;
                     border-radius: 100%;
@@ -113,7 +141,7 @@
                     background-clip: padding-box, border-box;
                     background-origin: border-box;
                 }
-            </style>
+            </style> --}}
 
             <!-- Setiap 2 row video, tambahkan 1 row gambar -->
             @if ($loop->iteration % 2 == 0)
@@ -141,8 +169,31 @@
         @endforeach
     </div>
 
-    {{-- Pagination untuk post image --}}
-    <div class="mt-6">
-        {{ $images->links() }}
-    </div>
+    <!-- Menampilkan Gambar -->
+    @if(request('category') !== 'video')
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            @foreach ($images as $image)
+                <div class="bg-white shadow-lg rounded-lg p-4">
+                    <a href="{{ route('posts.show', $image->id) }}">
+                        <img src="{{ asset('storage/' . $image->image_path) }}" class="w-72 h-72 object-cover mt-2 rounded-lg">
+                    </a>
+                    <div class="flex items-center mt-4">
+                        <img src="{{ filter_var($image->user->profile_picture, FILTER_VALIDATE_URL) ? $image->user->profile_picture : asset('storage/' . ($image->user->profile_picture ?? 'profile_pictures/default.jpg')) }}"
+                            class="w-10 h-10 rounded-full mr-2">
+                        <div class="flex items-center">
+                            <p class="font-semibold text-gray-800">{{ $image->user->name }}</p>
+                            <p class="text-sm text-gray-500 ml-2">{{ $image->created_at->diffForHumans() }}</p>
+                        </div>
+                    </div>
+                    <h3 class="text-sm font-semibold mt-2">{{ $image->title }}</h3>
+                    <p class="text-sm text-gray-500 mt-2">{{ $image->description }}</p>
+                </div>
+            @endforeach
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-6">
+            {{ $images->links() }}
+        </div>
+    @endif
 @endsection

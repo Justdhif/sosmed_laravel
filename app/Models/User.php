@@ -90,11 +90,6 @@ class User extends Authenticatable
         return $this->hasOne(ShopProfile::class);
     }
 
-    public function playlists()
-    {
-        return $this->hasMany(Playlist::class);
-    }
-
     public function ratings()
     {
         return $this->hasMany(Rating::class);
@@ -103,5 +98,10 @@ class User extends Authenticatable
     public function whislists()
     {
         return $this->hasMany(Wishlist::class);
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
     }
 }

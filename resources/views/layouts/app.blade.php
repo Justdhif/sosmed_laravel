@@ -8,6 +8,9 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Favicon -->
+    <link rel="icon" href="{{ asset('images/logo.png') }}" type="image/x-icon">
+
     <!-- Library -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 

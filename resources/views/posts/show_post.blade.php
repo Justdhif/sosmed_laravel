@@ -1,11 +1,19 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Postingan')
+@section('title', 'Detail Postingan' . $post->title)
 
 @section('content')
     <div class="p-6">
         {{-- Gambar Postingan --}}
-        <img src="{{ asset('storage/' . $post->image_path) }}" alt="" class="w-full h-[40rem] object-cover rounded-xl">
+        @if ($post->image_path)
+            <img src="{{ asset('storage/' . $post->image_path) }}" alt=""
+                class="w-full h-[40rem] object-cover rounded-xl">
+        @elseif ($post->youtube_video_id)
+            <iframe width="100%" height="640" src="https://www.youtube.com/embed/{{ $post->youtube_video_id }}"
+                title="YouTube video player" frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen class="rounded-xl"></iframe>
+        @endif
 
         {{-- Judul Postingan --}}
         <h3 class="text-3xl font-bold mt-4">{{ $post->title }}</h3>

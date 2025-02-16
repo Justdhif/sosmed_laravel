@@ -6,29 +6,27 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 
 // User Routes
-use App\Http\Controllers\User\UserController;
+use App\Http\Controllers\MessageController;
 
 // Auth Routes
 use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\User\UserController;
 use App\Http\Controllers\Auth\FollowController;
 use App\Http\Controllers\Auth\ProfileController;
 
 // Commerce Routes
+use App\Http\Controllers\Content\PostController;
 use App\Http\Controllers\Commerce\CartController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Commerce\RatingController;
 use App\Http\Controllers\Commerce\ProductController;
 use App\Http\Controllers\Commerce\CheckoutController;
-use App\Http\Controllers\Commerce\WishlistController;
-use App\Http\Controllers\Commerce\ShopProfileController;
 
 // Content Routes
-use App\Http\Controllers\Content\PostController;
-use App\Http\Controllers\Content\PlaylistController;
-use App\Http\Controllers\Content\YoutubeController;
-use App\Http\Controllers\Content\YouTubeMusicController;
+use App\Http\Controllers\Commerce\WishlistController;
 
 // Notification Routes
+use App\Http\Controllers\Commerce\ShopProfileController;
 use App\Http\Controllers\Notification\NotificationController;
 
 // Authentication Routes
@@ -45,6 +43,14 @@ Route::middleware(['auth'])->group(function () {
 
     // Home Route
     Route::get('/home', [HomeController::class, 'index'])->name('home');
+
+    // Message Routes
+    Route::prefix('messages')->group(function () {
+        Route::get('/', [MessageController::class, 'index'])->name('messages.index');
+        Route::get('/{user}', [MessageController::class, 'show'])->name('messages.show');
+        Route::post('/{user}', [MessageController::class, 'store'])->name('messages.store');
+        Route::get('/search', [MessageController::class, 'search'])->name('messages.search');
+    });
 
     // Post Routes
     Route::prefix('posts')->group(function () {
@@ -138,27 +144,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/failed', function () {
             return view('checkout.failed');
         })->name('checkout.failed');
-    });
-
-    // Youtube Routes
-    Route::prefix('youtube')->group(function () {
-        Route::get('/', [YoutubeController::class, 'index'])->name('youtube.index');
-        Route::get('/video/{videoId}', [YoutubeController::class, 'showVideoDetail'])->name('video.detail');
-        Route::post('/video/add-to-playlist', [YoutubeController::class, 'addToPlaylist'])->name('video.addToPlaylist');
-    });
-
-    // Playlist Routes
-    Route::prefix('playlists')->group(function () {
-        Route::get('/', [PlaylistController::class, 'index'])->name('playlist.index');
-        Route::get('/create', [PlaylistController::class, 'create'])->name('playlist.create');
-        Route::post('/', [PlaylistController::class, 'store'])->name('playlist.store');
-        Route::get('/{id}', [PlaylistController::class, 'show'])->name('playlist.show');
-        Route::get('/{playlist}/edit', [PlaylistController::class, 'edit'])->name('playlists.edit');
-        Route::put('/{playlist}', [PlaylistController::class, 'update'])->name('playlists.update');
-        Route::delete('/{playlist}', [PlaylistController::class, 'destroy'])->name('playlists.destroy');
-        Route::post('/{id}/add-video', [PlaylistController::class, 'addVideo'])->name('playlist.addVideo');
-        Route::delete('/{playlist}/videos', [PlaylistController::class, 'removeAllVideos'])->name('playlist.removeAllVideos');
-        Route::delete('/{playlist}/videos/remove', [PlaylistController::class, 'removeSelectedVideos'])->name('playlist.removeSelectedVideos');
     });
 
     // Logout Route

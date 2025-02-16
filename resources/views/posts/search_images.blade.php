@@ -6,14 +6,33 @@
     <div class="py-6">
         <div class="flex items-center justify-center gap-3">
             <img src="{{ asset('images/icon.webp') }}" alt="" class="w-12 h-12 object-cover">
-            <h2 class="text-3xl font-bold text-center">Hasil Pencarian : "{{ $query }}"</h2>
+            @if ($query)
+                <h2 class="text-3xl font-bold text-center">Result of : "{{ $query }}"</h2>
+            @else
+                <h2 class="text-3xl font-bold text-center">Explore <span class="text-blue-500">JustNews</span></h2>
+            @endif
         </div>
 
         <form action="{{ route('search.images') }}" method="GET" class="w-full mt-8 flex gap-3">
-            <input type="text" name="query" placeholder="Cari Gambar..."
+            <input type="text" name="query" placeholder="Cari Gambar..." value="{{ $query }}"
                 class="p-2 border-2 rounded-lg w-full focus:outline-none focus:border-blue-500">
             <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded-lg">🔍</button>
         </form>
+        <!-- Tab Kategori -->
+        <div class="mt-6 flex justify-between overflow-x-auto whitespace-nowrap space-x-3">
+            <a href="{{ route('home', array_merge(request()->query(), ['category' => 'all'])) }}"
+                class="px-4 py-2 rounded-lg duration-300 transition-all
+            {{ request('category') == 'all' || !request('category') ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-blue-300 hover:text-white' }}">
+                All
+            </a>
+            @foreach ($categories as $category)
+                <a href="{{ route('home', array_merge(request()->query(), ['category' => $category->id])) }}"
+                    class="px-4 py-2 rounded-lg duration-300 transition-all
+            {{ request('category') == $category->id ? 'bg-blue-500 text-white' : 'bg-gray-200 hover:bg-blue-300 hover:text-white' }}">
+                    {{ $category->name }}
+                </a>
+            @endforeach
+        </div>
 
         @if ($images->count() > 0)
             <div class="grid grid-cols-3 gap-4 mt-6">

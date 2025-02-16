@@ -197,28 +197,43 @@ class PostController extends Controller
     public function searchVideos(Request $request)
     {
         $query = $request->input('query');
+        $category = $request->input('category', 'all');
+
         $videos = Post::whereNotNull('youtube_video_id')
             ->where(function ($q) use ($query) {
                 $q->where('title', 'LIKE', "%$query%")
                     ->orWhere('description', 'LIKE', "%$query%");
             })
-            ->paginate(10);
+            ->when($category !== 'all', function ($q) use ($category) {
+                return $q->where('category_id', $category); // Filter berdasarkan kategori jika bukan 'all'
+            })
+            ->inRandomOrder()
+            ->get();
 
-        return view('posts.search_videos', compact('videos', 'query'));
+        $categories = Category::all();
+
+        return view('posts.search_videos', compact('videos', 'query', 'categories'));
     }
 
     public function searchImages(Request $request)
     {
         $query = $request->input('query');
+        $category = $request->input('category', 'all');
+
         $images = Post::whereNotNull('image_path')
             ->where(function ($q) use ($query) {
                 $q->where('title', 'LIKE', "%$query%")
                     ->orWhere('description', 'LIKE', "%$query%");
             })
-            ->orderBy('created_at', 'desc')
+            ->when($category !== 'all', function ($q) use ($category) {
+                return $q->where('category_id', $category); // Filter berdasarkan kategori jika bukan 'all'
+            })
+            ->inRandomOrder()
             ->get();
 
-        return view('posts.search_images', compact('images', 'query'));
+        $categories = Category::all();
+
+        return view('posts.search_images', compact('images', 'query', 'categories'));
     }
 
     protected function authorizeUser(Post $post)

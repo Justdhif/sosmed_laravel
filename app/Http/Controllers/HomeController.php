@@ -18,21 +18,46 @@ class HomeController extends Controller
      */
     public function index(Request $request)
     {
-        // Ambil kategori dari query string
+        // Ambil parameter kategori dan pencarian dari query string
         $categoryId = $request->query('category', 'all');
+        $searchQuery = $request->query('query', '');
 
-        // Ambil semua kategori untuk ditampilkan di tab kategori
+        // Ambil semua kategori untuk tab kategori
         $categories = Category::all();
+
         // Query untuk video (tanpa pagination)
         $videosQuery = Post::whereNotNull('youtube_video_id')->orderBy('created_at', 'desc');
 
         // Query untuk gambar (dengan pagination)
         $imagesQuery = Post::whereNotNull('image_path')->orderBy('created_at', 'desc');
 
-        // Jika kategori dipilih, filter berdasarkan kategori tersebut
-        if ($categoryId !== 'all') {
+        // Jika kategori dipilih (kecuali "all"), filter berdasarkan kategori
+        if ($categoryId !== 'all' && $categoryId !== 'foto' && $categoryId !== 'video') {
             $videosQuery->where('category_id', $categoryId);
             $imagesQuery->where('category_id', $categoryId);
+        }
+
+        // Jika kategori "foto" dipilih, hanya ambil gambar
+        if ($categoryId === 'foto') {
+            $videosQuery->whereRaw('1 = 0'); // Trik agar tidak mengambil video
+        }
+
+        // Jika kategori "video" dipilih, hanya ambil video
+        if ($categoryId === 'video') {
+            $imagesQuery->whereRaw('1 = 0'); // Trik agar tidak mengambil gambar
+        }
+
+        // Jika ada pencarian, filter berdasarkan judul atau deskripsi
+        if (!empty($searchQuery)) {
+            $videosQuery->where(function ($query) use ($searchQuery) {
+                $query->where('title', 'like', "%$searchQuery%")
+                    ->orWhere('description', 'like', "%$searchQuery%");
+            });
+
+            $imagesQuery->where(function ($query) use ($searchQuery) {
+                $query->where('title', 'like', "%$searchQuery%")
+                    ->orWhere('description', 'like', "%$searchQuery%");
+            });
         }
 
         // Ambil hasil query
@@ -44,7 +69,6 @@ class HomeController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Mengirim data postingan dan notifikasi ke view
         return view('home', compact('images', 'videos', 'notifications', 'categories'));
     }
 }

@@ -35,11 +35,11 @@ class UserController extends Controller
     {
         $user = User::where('name', $name)->firstOrFail();
 
-        // Mengambil data postingan pengguna
-        $posts = Post::with('media')->where('user_id', $user->id)->orderBy('created_at', 'desc')->get();
+        // Mengambil daftar postingan pengguna
+        $posts = Post::where('user_id', $user->id)->orderBy('created_at', 'desc')->get();
 
-        // Mengambil postingan yang disukai oleh pengguna
-        $likedPosts = $user->likedPosts()->with('media')->orderBy('created_at', 'desc')->get();
+        // Mengambil daftar postingan yang disukai oleh pengguna
+        $likedPosts = $user->likedPosts;
 
         // Mengambil pengguna yang diikuti
         $followingUsers = auth()->user()->following;
@@ -50,9 +50,6 @@ class UserController extends Controller
                 $query->orderBy('created_at', 'desc');
             }])
             ->first();
-
-        // Mengambil daftar playlist pengguna
-        $playlists = Playlist::where('user_id', $user->id)->get();
 
         // Menghitung jumlah produk dan rata-rata rating
         $productCount = $shopProfile ? $shopProfile->products->count() : 0;
@@ -66,7 +63,6 @@ class UserController extends Controller
             'likedPosts',
             'followingUsers',
             'shopProfile',
-            'playlists',
             'productCount',
             'averageRating'
         ));
